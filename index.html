@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+
+<html data-theme="light" lang="en">
+<head><script src="assets/js/backend_mock_adapter.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<meta content="#00A3FF" name="theme-color"/>
+<title>Swiggy Order Food</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="assets/css/css2.css" rel="stylesheet"/>
+<link href="assets/css/all.min.css" rel="stylesheet"/>
+<link crossorigin="" href="assets/css/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" rel="stylesheet"/>
+<script crossorigin="" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" src="assets/js/leaflet.js"></script>
+<script src="assets/js/telegram-web-app.js"></script>
+<link href="assets/css/style.css" rel="stylesheet"/>
+<link href="manifest.json" rel="manifest"/></head>
+<body>
+<!-- Top Toast Notification Banner with Timeline Bar -->
+<div class="timeline-toast-banner" id="topToastNotification">
+<div class="timeline-toast-body">
+<div class="timeline-toast-icon-box" id="topToastIconBox">
+<i class="fa-solid fa-circle-check" id="topToastIcon"></i>
+</div>
+<span class="timeline-toast-msg" id="topToastMsg">Welcome to Swiggy Order Food</span>
+</div>
+<div class="timeline-toast-progress" id="topToastProgress"></div>
+</div>
+<!-- Access-key gate (skipped inside Telegram mini app) -->
+<div class="auth-gate" id="authGate" style="display:none;">
+<div class="auth-gate-card">
+<div class="auth-gate-logo"><i class="fa-solid fa-bowl-food"></i></div>
+<h2>Swiggy <span class="pro-inline-tag">PRO</span></h2>
+<p>Enter your access key from the Telegram bot to continue.</p>
+<div class="field-box"><i class="fa-solid fa-key field-icon"></i>
+<input autocomplete="off" id="authKeyInput" maxlength="18" onkeydown="if(event.key==='Enter')submitAuthKey()" placeholder="SWG-XXXX-XXXX-XXXX" style="text-transform:uppercase;" type="text"/>
+</div>
+<div class="auth-gate-error" id="authGateError"></div>
+<button class="btn-glow-submit-wide" onclick="submitAuthKey()" style="margin-top:14px;">Login</button>
+</div>
+</div>
+<!-- Maintenance banner -->
+<div class="auth-gate" id="maintenanceOverlay" style="display:none; z-index:10001;">
+<div class="auth-gate-card">
+<div class="auth-gate-logo"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+<h2>Under Maintenance</h2>
+<p>We'll be back shortly. This page refreshes automatically.</p>
+</div>
+</div>
+<!-- Splash Glassmorphism Loader -->
+<div class="app-loader-overlay" id="appLoader" style="display:flex;">
+<div class="loader-box">
+<div class="spinner-ring"></div>
+<div class="loader-msg">Swiggy Order Food</div>
+</div>
+</div>
+<div id="app">
+<!-- ── HEADER (Brand + Swiggy PRO Inline + Status Phone Badge) ── -->
+<header class="app-header">
+<div class="brand">
+<div class="brand-badge-modern" id="brandBadgeBox">
+<div class="logo-squircle">
+<svg class="brand-s-svg" viewbox="0 0 100 100">
+<defs>
+<lineargradient id="swiggyGradHeader" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#00A3FF"></stop>
+<stop offset="100%" stop-color="#38BDF8"></stop>
+</lineargradient>
+</defs>
+<rect fill="url(#swiggyGradHeader)" height="84" rx="26" width="84" x="8" y="8"></rect>
+<path d="M52 22 C36 22 28 32 36 46 C44 60 66 54 66 68 C66 78 50 80 34 74" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="11"></path>
+<circle cx="53" cy="27" fill="#FFFFFF" r="4.5"></circle>
+</svg>
+</div>
+</div>
+<div class="brand-text-container">
+<span class="brand-name-text">Swiggy</span>
+<span class="pro-inline-tag">PRO</span>
+</div>
+</div>
+<!-- RIGHT: Active Phone Status Badge -->
+<div class="header-right">
+<div class="header-phone-badge" id="headerAccountDisplay" onclick="openAccountSelectorModal()" style="cursor:pointer;" title="Switch account">
+<i class="fa-solid fa-user-slash" style="color:var(--text-muted); margin-right:4px;"></i>No Account
+                </div>
+<button class="icon-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Theme">
+<i class="fa-solid fa-moon" style="font-size:14px;"></i>
+</button>
+</div>
+</header>
+<!-- ── MAIN BODY CONTENT ─────────────────────────── -->
+<main class="app-body">
+<!-- ══ TAB 1: ACCOUNTS & AUTH ══════════════════════ -->
+<section class="tab-view active" id="view-home">
+<!-- Add Account Card -->
+<div class="card" id="loginCard">
+<!-- Header with Add Account + Toggle -->
+<div class="login-card-head">
+<div style="display:flex; align-items:center; gap:8px;">
+<div class="login-head-icon"><i class="fa-solid fa-user-plus"></i></div>
+<span class="login-head-title">Add Account</span>
+</div>
+<!-- Pill Toggle -->
+<div class="login-pill-track" id="login-toggle-track">
+<button class="login-pill active" id="loginTabOtp" onclick="switchLoginTab('otp')" type="button">
+<i class="fa-solid fa-mobile-screen"></i> Number
+                            </button>
+<button class="login-pill" id="loginTabJson" onclick="switchLoginTab('json')" type="button">
+<i class="fa-solid fa-code"></i> JSON
+                            </button>
+</div>
+</div>
+<!-- OTP Login Mode -->
+<div class="login-tab-content" id="loginContentOtp">
+<div id="otpStep1" style="flex-direction:column;">
+<div style="margin-bottom:12px;">
+<span class="login-label">Mobile Number</span>
+<div class="login-phone-box">
+<div class="login-phone-prefix">🇮🇳 +91</div>
+<input id="otpMobileInput" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="Enter Mobile Number" type="tel"/>
+</div>
+</div>
+<button class="login-btn" id="loginSendBtn" onclick="handleCheckMobileAndSendOtp()" type="button">
+<i class="fa-solid fa-paper-plane"></i> Send OTP
+                            </button>
+</div>
+<!-- Step 2: OTP -->
+<div id="otpStep2" style="display:none; flex-direction:column;">
+<div class="login-label login-label-row">
+<span>OTP SENT TO <span id="otpMobileDisplay"></span></span>
+<span class="login-edit" onclick="showOtpStep(1)"><i class="fa-solid fa-pen" style="font-size:9px;"></i> Edit</span>
+</div>
+<div style="display:flex; gap:8px;">
+<input class="login-otp-input" id="otpCodeInput" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="Enter OTP" type="tel"/>
+<button class="login-btn" id="loginVerifyBtn" onclick="handleVerifyOtp()" style="width:auto; height:44px; padding:0 16px; font-size:14px; letter-spacing:0.5px;" type="button">
+                                    Verify <i class="fa-solid fa-arrow-right"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- JSON Login Mode -->
+<div class="login-tab-content" id="loginContentJson" style="display:none;">
+<div style="margin-bottom:12px;">
+<span class="login-label">Session JSON or Key</span>
+<textarea class="login-code-input login-json-input" id="jsonPayloadInput" placeholder='{
+  "mobile": "9876543210",
+  "token": "xxxxx",
+  "sid": "xxxxx",
+  "tid": "xxxxx",
+  "deviceId": "xxxxx"
+}' rows="5"></textarea>
+</div>
+<button class="login-btn" onclick="handleSaveJsonSession()" type="button">
+<i class="fa-solid fa-bolt-lightning"></i> Login Via JSON
+                        </button>
+</div>
+</div>
+<!-- Saved Accounts Section -->
+<div class="section-head" id="accountsHead" style="margin-top:18px;">
+<span class="section-head-icon"><i class="fa-solid fa-address-book"></i></span>
+<span class="section-head-title">Saved Accounts</span>
+<span class="section-head-line"></span>
+<span class="count-badge" id="savedAccountsCount">0</span>
+</div>
+<!-- Number Search Bar -->
+<div style="margin-bottom:10px;">
+<div class="mini-search">
+<i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted); font-size:11px; margin-right:8px;"></i>
+<input id="accountSearchInput" oninput="handleAccountSearchInput(this.value)" placeholder="Search Account..." type="text"/>
+<button id="clearAccountSearchBtn" onclick="clearAccountSearch()" style="display:none; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:0 4px;" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+</div>
+<!-- All / Fresh / Used tabs (icons only, default All) -->
+<div class="acc-tabs" id="accTabsRow" style="display:none;">
+<button class="acc-tab on" data-tab="all" onclick="setAccountTab('all')" title="All accounts" type="button"><i class="fa-solid fa-cart-shopping"></i><span>All</span></button>
+<button class="acc-tab" data-tab="fresh" onclick="setAccountTab('fresh')" title="Fresh accounts" type="button"><i class="fa-solid fa-recycle"></i><span>Fresh</span></button>
+<button class="acc-tab" data-tab="used" onclick="setAccountTab('used')" title="Used accounts" type="button"><i class="fa-solid fa-clock-rotate-left"></i><span>Used</span></button>
+<button aria-label="Remove all accounts" class="acc-tab acc-del-all" onclick="adAllOpen()" title="Remove all accounts" type="button"><i class="fa-solid fa-trash-can"></i></button>
+</div>
+<!-- Saved Accounts Cards Container -->
+<div id="savedAccountsList"></div>
+</section>
+<!-- ══ TAB 2: ADDRESS ═══════════════════════ -->
+<section class="tab-view" id="view-address">
+<div class="full-page-empty" id="addressNoAccountBanner" style="display:none;">
+<div class="fpe-ring">
+<svg fill="none" height="28" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="28">
+<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path><circle cx="12" cy="10" r="3"></circle>
+</svg>
+</div>
+<div class="fpe-title">No Account Selected</div>
+<div class="fpe-sub">Login with a mobile number first to manage addresses</div>
+<button class="btn-glow-submit-wide" onclick="switchTab('home')" style="margin-top:14px; width:auto; padding:0 22px;">
+<i class="fa-solid fa-arrow-right"></i> Go to Login
+                    </button>
+</div>
+<div id="addressContent">
+<div class="store-links-container" style="margin-top:0; margin-bottom:16px;">
+<div class="store-link-card sky-card" onclick="openLinkImportModal()" role="button">
+<div class="card-left">
+<div class="card-icon-box sky"><i class="fa-solid fa-link"></i></div>
+<div class="card-info">
+<div class="card-title">Add by Address Link</div>
+<div class="card-sub">Get the address link from Swiggy to add</div>
+</div>
+</div>
+<div class="card-right"><div class="open-pill-btn sky">Add <i class="fa-solid fa-plus"></i></div></div>
+</div>
+<div class="store-link-card green-card" onclick="openAddAddressPage()" role="button">
+<div class="card-left">
+<div class="card-icon-box green"><i class="fa-solid fa-pen-fancy"></i></div>
+<div class="card-info">
+<div class="card-title">Add Manually on Map</div>
+<div class="card-sub">Search, pin the location &amp; enter details</div>
+</div>
+</div>
+<div class="card-right"><div class="open-pill-btn green">Add <i class="fa-solid fa-plus"></i></div></div>
+</div>
+</div>
+<!-- Saved Addresses Container -->
+<div id="addressListContainer"></div>
+</div>
+</section>
+<!-- ══ TAB 3: DEDICATED ADD ADDRESS MAP PAGE ════════ -->
+<section class="tab-view" id="view-add-address">
+<div class="page-top-bar">
+<button class="back-page-btn" onclick="switchTab('address')" type="button">
+<i class="fa-solid fa-arrow-left"></i>
+</button>
+<h2 class="page-top-title">Add Delivery Address</h2>
+</div>
+<div class="add-address-container" style="padding-bottom:20px;">
+<!-- Leaflet Map Search & Box -->
+<div class="card">
+<div class="map-search-wrap" style="margin-bottom:10px;">
+<i class="fa-solid fa-magnifying-glass map-search-icon"></i>
+<input id="mapSearchInput" oninput="handleMapSearchInput(this.value)" placeholder="Search area, building or street..." type="text"/>
+<div class="map-search-dropdown" id="mapSearchResults" style="display:none;"></div>
+</div>
+<div class="leaflet-map-container">
+<div id="addressLeafletMap" style="width:100%; height:220px; background:#e2e8f0; border-radius:12px;"></div>
+<button class="gps-floating-btn" onclick="getCurrentGpsLocation()" type="button">
+<i class="fa-solid fa-location-crosshairs"></i> Use Current Location
+                            </button>
+</div>
+<div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+<i class="fa-solid fa-location-dot" style="color:#00A3FF; font-size:16px;"></i>
+<div>
+<div id="selectedLocTitle" style="font-family:var(--font-heading); font-weight:800; font-size:13px; color:var(--text-main);">Fetching Location...</div>
+<div id="selectedLocSub" style="font-size:11px; color:var(--text-muted);">Drag map pin to adjust exact position</div>
+</div>
+</div>
+</div>
+<!-- Input Fields Card -->
+<div class="card">
+<div style="font-family:var(--font-heading); font-weight:800; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+<i class="fa-solid fa-house" style="color:#00A3FF;"></i> Address &amp; Contact Details
+                        </div>
+<div class="annotation-tags-row" style="margin-bottom:12px;">
+<span class="tag-label">Tag:</span>
+<button class="tag-pill active" onclick="selectAnnotationTag('Home', this)" type="button"><i class="fa-solid fa-house"></i> Home</button>
+<button class="tag-pill" onclick="selectAnnotationTag('Work', this)" type="button"><i class="fa-solid fa-briefcase"></i> Work</button>
+<button class="tag-pill" onclick="selectAnnotationTag('Other', this)" type="button"><i class="fa-solid fa-location-dot"></i> Other</button>
+</div>
+<div class="field-box">
+<div class="field-icon-badge blue"><i class="fa-solid fa-house-chimney"></i></div>
+<input id="addrHouse" placeholder="Flat / House / Floor / Building No. *" type="text"/>
+</div>
+<div class="field-box">
+<div class="field-icon-badge green"><i class="fa-solid fa-location-dot"></i></div>
+<input id="addrArea" placeholder="Area / Street / Colony / Apartment *" type="text"/>
+</div>
+<div class="field-box">
+<div class="field-icon-badge amber"><i class="fa-solid fa-compass"></i></div>
+<input id="addrLandmark" placeholder="Landmark (Optional)" type="text"/>
+</div>
+<div class="field-box">
+<div class="field-icon-badge purple"><i class="fa-solid fa-user"></i></div>
+<input id="addrReceiverName" placeholder="Receiver Name *" type="text"/>
+</div>
+<div class="field-box">
+<div class="field-icon-badge blue"><i class="fa-solid fa-mobile-screen"></i></div>
+<input id="addrReceiverPhone" maxlength="10" placeholder="Receiver Phone Number *" type="tel"/>
+</div>
+<div class="field-box">
+<div class="field-icon-badge teal"><i class="fa-solid fa-comment-dots"></i></div>
+<input id="addrInstructions" placeholder="Delivery notes for rider..." type="text"/>
+</div>
+<button class="btn-glow-submit-wide" onclick="handleSaveManualAddress()" type="button">
+<i class="fa-solid fa-circle-check"></i> Save Address &amp; Continue
+                        </button>
+</div>
+</div>
+</section>
+<!-- ══ TAB 4: CART & CHECKOUT ════════════════════ -->
+<section class="tab-view" id="view-cart">
+<div class="full-page-empty" id="cartNoAccountBanner" style="display:none;">
+<div class="fpe-ring">
+<svg fill="none" height="28" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="28">
+<circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+</svg>
+</div>
+<div class="fpe-title">No Account Selected</div>
+<div class="fpe-sub">Login with a mobile number first to view your cart</div>
+<button class="btn-glow-submit-wide" onclick="switchTab('home')" style="margin-top:14px; width:auto; padding:0 22px;">
+<i class="fa-solid fa-arrow-right"></i> Go to Login
+                    </button>
+</div>
+<div id="cartContent" style="display:none;">
+<!-- Group cart link -->
+<div class="card sc-link-card">
+<div class="sc-card-title"><i class="fa-solid fa-link"></i> Add Items from Group Cart
+                            <button class="sc-incog-btn" id="scIncogBtn" onclick="scToggleIncognito()" title="Incognito order" type="button">
+<i class="fa-solid fa-user-secret"></i><span class="sc-incog-knob"><span></span></span>
+</button>
+</div>
+<p class="sc-card-sub">Paste a Swiggy group cart link to add its items.</p>
+<div class="sc-link-row">
+<input autocomplete="off" class="sc-input" id="scLinkInput" placeholder="https://www.swiggy.com/..." type="url"/>
+<button class="sc-link-btn-go" onclick="scFetchGroupLink()" type="button"><i class="fa-solid fa-arrow-right"></i></button>
+</div>
+</div>
+<!-- Delivery address (blinkit_bot style) -->
+<div class="card sc-addr-card" onclick="scOpenAddrSheet()">
+<span class="sc-addr-ico"><i class="fa-solid fa-location-dot"></i></span>
+<span class="sc-addr-text">
+<b id="scAddrTitle">Select Delivery Address</b>
+<small id="scAddrSub">Tap to choose where to deliver</small>
+</span>
+<i class="fa-solid fa-chevron-right sc-addr-go"></i>
+</div>
+<div id="scCart"></div>
+</div>
+</section>
+<!-- Payment page (UPI) -->
+<section class="tab-view" id="view-payment"><div id="scPayPage"></div></section>
+<!-- Order placed page -->
+<section class="tab-view" id="view-success"><div id="scDonePage"></div></section>
+<!-- ══ TAB 5: QUICK ORDER & TOOLS ══════════════════ -->
+<section class="tab-view" id="view-tools">
+<div class="tl-offers" id="tlOffers"></div>
+</section>
+<!-- ══ TAB 6: ORDERS HISTORY ═══════════════════════ -->
+<section class="tab-view" id="view-orders">
+<div class="od-seg" id="odSeg">
+<span class="od-seg-ind"></span>
+<button class="od-seg-btn active" id="odTabAcc" onclick="setOrdersTab('acc')" type="button"><i class="fa-solid fa-receipt"></i> This Account</button>
+<button class="od-seg-btn" id="odTabHour" onclick="setOrdersTab('hour')" type="button"><i class="fa-solid fa-bolt"></i> Last 1 Hour <em id="odHourCount">0</em></button>
+</div>
+<div id="ordersContent"><div id="ordersListContainer"></div></div>
+<div id="hourOrdersContent" style="display:none;"><div id="hourOrdersList"></div></div>
+</section>
+<div class="od-page" id="orderDetailPage" style="display:none;"></div>
+<!-- ══ TAB 7: INSTAMART & FOOD SHOP ═════════════════ -->
+<section class="tab-view" id="view-search">
+<div class="full-page-empty" id="srNoAccount" style="display:none;">
+<div class="fpe-ring">
+<svg fill="none" height="26" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="26"><circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line></svg>
+</div>
+<div class="fpe-title">No Account Selected</div>
+<div class="fpe-sub">Login with a mobile number first to search restaurants</div>
+<button class="btn-glow-submit-wide" onclick="switchTab('home')" style="margin-top:14px; width:auto; padding:0 22px;">
+<i class="fa-solid fa-arrow-right"></i> Go to Login
+                    </button>
+</div>
+<div id="srContent">
+<!-- Deliver-to location -->
+<button class="sr-loc-bar" id="srLocBar" onclick="srOpenLocationSheet()" type="button">
+<span class="sr-loc-ico"><i class="fa-solid fa-location-dot"></i></span>
+<span class="sr-loc-text">
+<span class="sr-loc-label">Deliver to</span>
+<span class="sr-loc-title" id="srLocTitle">Select your location</span>
+<span class="sr-loc-sub" id="srLocSub"></span>
+</span>
+<i class="fa-solid fa-chevron-down sr-loc-chev"></i>
+</button>
+<!-- Search + results -->
+<div id="srSearchView">
+<div class="mini-search sr-search">
+<i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted); font-size:12px; margin-right:8px;"></i>
+<input autocomplete="off" id="srQuery" oninput="srOnQuery(this.value)" placeholder="Search for restaurants..." type="text"/>
+<button aria-label="Clear" class="sr-clear-x" id="srClearBtn" onclick="srClearQuery()" style="display:none;" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div id="srResults"></div>
+</div>
+<!-- Restaurant menu -->
+<div id="srMenuView" style="display:none;">
+<div class="sr-menu-top">
+<button aria-label="Back to results" class="sr-back" onclick="srBackToResults()" type="button"><i class="fa-solid fa-arrow-left"></i></button>
+<div class="sr-menu-top-title" id="srMenuTopTitle"></div>
+<label class="sr-veg-switch" title="Veg only">
+<input id="srVegOnly" onchange="if (sr.ms &amp;&amp; sr.ms.q &amp;&amp; !sr.ms.cat) { sr.ms.items = null; srMsFetch(); } srRenderMenu()" type="checkbox"/>
+<span class="sr-veg-track"><span class="sr-veg-knob"></span></span>
+<span class="sr-veg-text">Veg</span>
+</label>
+</div>
+<div id="srMenuHeader"></div>
+<div class="sr-ms" id="srMenuSearch">
+<div class="sr-ms-bar">
+<i class="fa-solid fa-magnifying-glass"></i>
+<input autocomplete="off" id="srMsInput" onblur="srMsBlur()" onfocus="srMsFocus()" oninput="srMsInput(this.value)" onkeydown="if (event.key === 'Enter') this.blur()" placeholder="Search dishes in this restaurant" type="search"/>
+<button aria-label="Clear" class="sr-ms-clear" id="srMsClear" onclick="srMsClear()" onmousedown="event.preventDefault()" style="display:none" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="sr-ms-sugg" id="srMsSugg"></div>
+</div>
+<div id="srMenuList"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- ── FIXED BOTTOM NAVIGATION BAR (Accounts, Address, Search, Cart, Orders, Tools) ── -->
+<nav class="nav-bar-6">
+<button class="nav-tab active" id="nav-home" onclick="switchTab('home')">
+<div class="nav-ico">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="20">
+<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
+</svg>
+</div>
+<span>Accounts</span>
+</button>
+<button class="nav-tab" id="nav-address" onclick="switchTab('address')">
+<div class="nav-ico">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="20">
+<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path><circle cx="12" cy="10" r="3"></circle>
+</svg>
+</div>
+<span>Address</span>
+</button>
+<button class="nav-tab" id="nav-search" onclick="switchTab('search')">
+<div class="nav-ico">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="20">
+<circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+</svg>
+</div>
+<span>Search</span>
+</button>
+<button class="nav-tab" id="nav-cart" onclick="switchTab('cart')">
+<div class="nav-ico" style="position:relative;">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="20">
+<circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+</svg>
+<span class="nav-cart-badge" id="cartBadgeCount" style="display:none;">0</span>
+</div>
+<span>Cart</span>
+</button>
+<button class="nav-tab" id="nav-orders" onclick="switchTab('orders')">
+<div class="nav-ico">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="20">
+<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+<path d="M3 3v5h5"></path>
+<path d="M12 7v5l4 2"></path>
+</svg>
+</div>
+<span>Orders</span>
+</button>
+<button class="nav-tab" id="nav-tools" onclick="switchTab('tools')">
+<div class="nav-ico">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="20">
+<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+</svg>
+</div>
+<span>Tools</span>
+</button>
+</nav>
+<!-- ── MODALS & BOTTOM SHEETS ───────────────────── -->
+<!-- Registered Account Confirmation Modal -->
+<div class="modal-overlay" id="confirmRegisterModal" onclick="closeConfirmRegisterModal(event)" style="display:none;">
+<div class="confirm-modal-card" onclick="event.stopPropagation()">
+<div class="confirm-icon-box">
+<svg fill="none" height="24" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="24">
+<circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="16" y2="12"></line><line x1="12" x2="12.01" y1="8" y2="8"></line>
+</svg>
+</div>
+<h3 class="confirm-title">Already Registered!</h3>
+<p class="confirm-submsg" id="confirmRegisterSubmsg">This mobile number is already registered.</p>
+<div class="confirm-btns-row">
+<button class="btn btn-cancel-modal" onclick="closeConfirmRegisterModal()" type="button">Back</button>
+<button class="btn btn-continue-modal" id="confirmRegisterContinueBtn" type="button">Send OTP</button>
+</div>
+</div>
+</div>
+<!-- Account Selector Bottom Sheet Modal -->
+<div class="bottom-sheet-overlay" id="accountSelectorModal" onclick="closeAccountSelectorModal(event)" style="display:none;">
+<div class="bottom-sheet-card" onclick="event.stopPropagation()">
+<div class="bottom-sheet-drag-handle"></div>
+<div class="bottom-sheet-header">
+<div style="font-family:var(--font-heading); font-weight:800; font-size:14px; display:flex; align-items:center; gap:6px;">
+<i class="fa-solid fa-users-gear" style="color:#00A3FF;"></i> Switch Account
+                    </div>
+<button class="sheet-close-btn" onclick="closeAccountSelectorModal()" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div style="padding:10px 16px;">
+<div class="field-box search-field">
+<i class="fa-solid fa-magnifying-glass" style="color:#00A3FF; font-size:12px;"></i>
+<input id="sheetAccountSearchInput" oninput="filterAccountsInSheet(this.value)" placeholder="Search account..." type="text"/>
+</div>
+</div>
+<div class="acc-tabs sheet-acc-tabs" style="padding:0 16px;">
+<button class="acc-tab on" data-stab="all" onclick="setSheetAccountFilter('all')" title="All accounts" type="button"><i class="fa-solid fa-cart-shopping"></i><span>All</span></button>
+<button class="acc-tab" data-stab="fresh" onclick="setSheetAccountFilter('fresh')" title="Fresh accounts" type="button"><i class="fa-solid fa-recycle"></i><span>Fresh</span></button>
+<button class="acc-tab" data-stab="used" onclick="setSheetAccountFilter('used')" title="Used accounts" type="button"><i class="fa-solid fa-clock-rotate-left"></i><span>Used</span></button>
+</div>
+<div id="modalAccountList" style="max-height:52vh; overflow-y:auto; padding:4px 16px 16px;"></div>
+</div>
+</div>
+<!-- Import Link Bottom Sheet Modal -->
+<div class="bottom-sheet-overlay" id="linkImportModal" onclick="closeLinkImportModal(event)" style="display:none;">
+<div class="bottom-sheet-card" onclick="event.stopPropagation()">
+<div class="bottom-sheet-drag-handle"></div>
+<div class="bottom-sheet-header">
+<div style="font-family:var(--font-heading); font-weight:800; font-size:14px; display:flex; align-items:center; gap:6px;">
+<i class="fa-solid fa-link" style="color:#00A3FF;"></i> Import Swiggy Link
+                    </div>
+<button class="sheet-close-btn" onclick="closeLinkImportModal()" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div style="padding:14px 16px 20px;">
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Paste Swiggy location share link:</p>
+<div class="field-box">
+<i class="fa-solid fa-link field-icon"></i>
+<input id="addrLinkInput" placeholder="https://swiggy.onelink.me/..." type="url"/>
+</div>
+<button class="btn-glow-submit-wide" onclick="handleAddAddressByLink()" type="button">
+<i class="fa-solid fa-file-import"></i> Import &amp; Save Address
+                    </button>
+</div>
+</div>
+</div>
+<!-- Coupon Modal -->
+<div class="bottom-sheet-overlay" id="cartCouponModal" onclick="closeCouponModal(event)" style="display:none;">
+<div class="bottom-sheet-card" onclick="event.stopPropagation()">
+<div class="bottom-sheet-drag-handle"></div>
+<div class="bottom-sheet-header">
+<div style="font-family:var(--font-heading); font-weight:800; font-size:14px; display:flex; align-items:center; gap:6px;">
+<i class="fa-solid fa-ticket" style="color:#00A3FF;"></i> Apply Coupon
+                    </div>
+<button class="sheet-close-btn" onclick="closeCouponModal()" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div style="padding:14px 16px 20px;">
+<div class="field-box">
+<i class="fa-solid fa-tag field-icon"></i>
+<input id="couponCodeInput" placeholder="Enter coupon code..." style="text-transform:uppercase;" type="text"/>
+</div>
+<button class="btn-glow-submit-wide" onclick="handleApplyCoupon()" type="button">
+<i class="fa-solid fa-check"></i> Apply Code
+                    </button>
+</div>
+</div>
+</div>
+<!-- Cart Address Selector Modal -->
+<div class="bottom-sheet-overlay" id="cartAddressModal" onclick="closeCartAddressModal(event)" style="display:none;">
+<div class="bottom-sheet-card" onclick="event.stopPropagation()">
+<div class="bottom-sheet-drag-handle"></div>
+<div class="bottom-sheet-header">
+<div style="font-family:var(--font-heading); font-weight:800; font-size:14px; display:flex; align-items:center; gap:6px;">
+<i class="fa-solid fa-location-dot" style="color:#00A3FF;"></i> Select Delivery Address
+                    </div>
+<button class="sheet-close-btn" onclick="closeCartAddressModal()" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div style="padding:14px 16px 20px;">
+<div id="cartAddressSelectorList"></div>
+</div>
+</div>
+</div>
+</div><!-- #app -->
+<!-- Search: floating cart bar -->
+<div class="sr-cart-bar" id="srCartBar" onclick="srOpenCartSheet()" style="display:none;">
+<span class="sr-cart-bar-ico"><i class="fa-solid fa-bag-shopping"></i></span>
+<div class="sr-cart-bar-left">
+<span class="sr-cart-bar-count" id="srCartBarCount">1 item</span>
+<span class="sr-cart-bar-total" id="srCartBarTotal">₹0</span>
+</div>
+<div class="sr-cart-bar-go">View Cart <i class="fa-solid fa-chevron-right"></i></div>
+</div>
+<!-- Search: location sheet -->
+<div class="sr-sheet-backdrop hidden" id="srOutletSheet" onclick="srCloseSheet(event, 'srOutletSheet')">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div class="sr-sheet-title"><span class="sr-sheet-title-ico"><i class="fa-solid fa-store"></i></span>Other outlets<button aria-label="Close" class="sr-sheet-close" onclick="srCloseSheet(null, 'srOutletSheet')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="sr-outlet-current" id="srOutletCurrent"></div>
+<div id="srOutletList"></div>
+</div>
+</div>
+<div class="sr-sheet-backdrop hidden" id="srLocSheet" onclick="srCloseSheet(event, 'srLocSheet')">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div class="sr-sheet-title"><span class="sr-sheet-title-ico"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span>Select your location<button aria-label="Close" class="sr-sheet-close" onclick="srCloseSheet(null, 'srLocSheet')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="mini-search sr-search sr-place-search">
+<i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted); font-size:12px; margin-right:8px;"></i>
+<input autocomplete="off" id="srPlaceQuery" oninput="srOnPlaceQuery(this.value)" placeholder="Search for area, street name..." type="text"/>
+<button aria-label="Clear" class="sr-clear-x" id="srPlaceClear" onclick="srClearPlace()" style="display:none;" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div id="srPlaceResults"></div>
+<div id="srLocDefault">
+<button class="sr-gps-row" onclick="srUseCurrentLocation()" type="button">
+<span class="sr-gps-ico"><i class="fa-solid fa-location-crosshairs"></i></span>
+<span class="sr-gps-text">
+<span class="sr-gps-title">Use current location</span>
+<span class="sr-gps-sub" id="srGpsSub">Using GPS</span>
+</span>
+<i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:11px;"></i>
+</button>
+<div class="section-head" style="margin-top:14px;">
+<span class="section-head-icon"><svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5z"></path><path d="M9 4v13.5"></path><path d="M15 6.5v5"></path><path d="M18.5 14.2c0 2.2-3 4.8-3 4.8s-3-2.6-3-4.8a3 3 0 0 1 6 0z" fill="currentColor" stroke="none"></path><circle cx="15.5" cy="14.2" fill="var(--bg-card)" r="1" stroke="none"></circle></svg></span>
+<span class="section-head-title">Saved Addresses</span>
+<span class="section-head-line"></span>
+</div>
+<div id="srLocList"></div>
+</div>
+</div>
+</div>
+<!-- Cart: delivery address sheet (saved addresses only, blinkit_bot style) -->
+<div class="sr-sheet-backdrop hidden" id="scAddrSheet" onclick="srCloseSheet(event, 'scAddrSheet')">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div class="sr-sheet-title"><span class="sr-sheet-title-ico"><i class="fa-solid fa-location-dot"></i></span>Select Delivery Address<button aria-label="Close" class="sr-sheet-close" onclick="srCloseSheet(null, 'scAddrSheet')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
+<div id="scAddrList"></div>
+</div>
+</div>
+<!-- Cart: coupons sheet -->
+<div class="sr-sheet-backdrop hidden" id="scCouponSheet" onclick="srCloseSheet(event, 'scCouponSheet')">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div class="sr-sheet-title"><span class="sr-sheet-title-ico"><i class="fa-solid fa-ticket"></i></span>Apply Coupon<button aria-label="Close" class="sr-sheet-close" onclick="srCloseSheet(null, 'scCouponSheet')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="sc-cp-manual">
+<input autocomplete="off" id="scCouponCode" onkeydown="if (event.key === 'Enter') scApplyTyped()" placeholder="Enter coupon code" type="text"/>
+<button aria-label="Apply coupon" class="sc-cp-go" onclick="scApplyTyped()" type="button"><i class="fa-solid fa-arrow-right"></i></button>
+</div>
+<div id="scCouponList"></div>
+</div>
+</div>
+<!-- Search: item customisation sheet -->
+<div class="sr-sheet-backdrop hidden" id="tlSheet" onclick="tlCloseSheet(event)">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div id="tlSheetBody"></div>
+</div>
+</div>
+<div class="sr-sheet-backdrop hidden" id="srAddonSheet" onclick="srCloseSheet(event, 'srAddonSheet')">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div id="srAddonBody"></div>
+</div>
+</div>
+<!-- Search: cart sheet -->
+<div class="sr-sheet-backdrop hidden" id="srCartSheet" onclick="srCloseSheet(event, 'srCartSheet')">
+<div class="sr-sheet">
+<div class="sr-sheet-handle"></div>
+<div id="srCartBody"></div>
+</div>
+</div>
+<!-- Custom Confirm Modal -->
+<div class="confirm-backdrop hidden" id="customConfirmModal">
+<div class="confirm-box">
+<div class="confirm-ico"><i class="fa-solid fa-circle-question"></i></div>
+<h3 class="confirm-title" id="confirm-modal-title">Confirm</h3>
+<p class="confirm-desc" id="confirm-modal-desc"></p>
+<div class="confirm-btns">
+<button class="confirm-btn cancel" id="confirm-modal-cancel" type="button">Cancel</button>
+<button class="confirm-btn ok" id="confirm-modal-ok" type="button">Confirm</button>
+</div>
+</div>
+</div>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/search.js"></script>
+<script src="assets/js/cart.js"></script>
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {})); }</script></body>
+</html>
